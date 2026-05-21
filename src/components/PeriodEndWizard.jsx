@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { calculateStaffPayroll } from '../utils/calculations';
 
 function PeriodEndWizard({ carryover, ledger, actuals, results, currentPeriod }) {
   const [currentStep, setCurrentStep] = useState(1);
@@ -7,42 +8,8 @@ function PeriodEndWizard({ carryover, ledger, actuals, results, currentPeriod })
     setCurrentStep(step);
   };
 
-  const handleActualChange = (field, val) => {
-    const num = val === '' ? 0 : Number(val);
-    if (field === 'mat') {
-      setActualMaterials(num);
-      onUpdateActuals({ ...actuals, actualMaterials: num });
-    } else if (field === 'wip') {
-      setActualWip(num);
-      onUpdateActuals({ ...actuals, actualWip: num });
-    } else if (field === 'prod') {
-      setActualProduct(num);
-      onUpdateActuals({ ...actuals, actualProduct: num });
-    } else if (field === 'cash') {
-      setActualCash(num);
-      onUpdateActuals({ ...actuals, actualCash: num });
-    }
-  };
-
-  const handleAccidentChange = (field, val) => {
-    const num = val === '' ? 0 : Number(val);
-    onUpdateActuals({
-      ...actuals,
-      [field]: num
-    });
-  };
-
-  // 材料/仕掛品/製品の帳簿残高 (理論値)
-  const matTheoretical = results.mat.endingCount;
-  const wipTheoretical = results.wip.endingCount;
-  const prodTheoretical = results.prod.endingCount;
-  const cashTheoretical = results.bookEndingCash;
-
-  // 在庫不一致チェック
-  const matMatches = matTheoretical === actualMaterials;
-  const wipMatches = wipTheoretical === actualWip;
-  const prodMatches = prodTheoretical === actualProduct;
-  const cashMatches = cashTheoretical === actualCash;
+  // 給料計算
+  const payroll = calculateStaffPayroll(carryover);
 
   return (
     <div style={{ padding: '0 0 24px 0' }}>
@@ -73,295 +40,156 @@ function PeriodEndWizard({ carryover, ledger, actuals, results, currentPeriod })
               >
                 {step}
               </div>
-              {step === 1 ? '在庫棚卸' : step === 2 ? '事故損失' : '現金合わせ'}
+              {step === 1 ? '給料・チップ確認' : step === 2 ? '決算確認' : '完了'}
             </button>
           ))}
         </div>
       </div>
 
-      {/* ステップ1: 在庫の棚卸 (盤と帳簿の照合) */}
+      {/* ステップ1: 給料・チップ確認 */}
       {currentStep === 1 && (
         <div className="tab-panel">
           <div className="glass-card">
             <div className="glass-card-header">
               <h3 className="glass-card-title">
-                📦 ステップ1: 盤の在庫棚卸
+                💰 ステップ1: 給料・チップ返却確認
               </h3>
             </div>
             <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '16px' }}>
-              会社盤の上のコマ数（実際数）を数えて入力してください。出納帳から計算された「帳簿残高」と一致しているか照合します。
+              第{currentPeriod}期末の給料支払い額とチップ返却を確認してください。
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              
-              {/* 材料の棚卸 */}
-              <div style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.05)', paddingBottom: '12px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                  <span style={{ fontWeight: '700', fontSize: '0.9rem' }}>1. 材料 (原料)</span>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                    帳簿上の理論値: <span className="electric-number" style={{ color: 'var(--text-primary)' }}>{matTheoretical} 個</span>
-                  </span>
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '12px', alignItems: 'center' }}>
-                  <div className="form-group" style={{ marginBottom: 0 }}>
-                    <input
-                      type="number"
-                      value={actualMaterials || ''}
-                      onChange={(e) => handleActualChange('mat', e.target.value)}
-                      placeholder="盤の上の材料数"
-                      className="form-input"
-                      style={{ padding: '10px' }}
-                    />
+
+              {/* 給料計算 */}
+              <div className="glass-card" style={{ padding: '12px', background: 'rgba(0, 176, 255, 0.08)', borderColor: 'rgba(0, 176, 255, 0.2)' }}>
+                <div style={{ marginBottom: '12px' }}>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>社員給料</span>
+                  <div style={{ fontSize: '1.1rem', fontWeight: '700' }}>
+                    {carryover.employees || 0}名 × ¥50万 = <span style={{ color: 'var(--mg-blue)' }}>¥{payroll.employeePay}万</span>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'center' }}>
-                    {matMatches ? (
-                      <span className="badge badge-green" style={{ width: '100%', padding: '8px 0' }}>✅ 一致 (OK)</span>
-                    ) : (
-                      <span className="badge badge-pink" style={{ width: '100%', padding: '8px 0' }}>⚠️ ズレあり</span>
-                    )}
+                </div>
+                <div>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>PA給料</span>
+                  <div style={{ fontSize: '1.1rem', fontWeight: '700' }}>
+                    {carryover.pas || 0}名 × ¥20万 = <span style={{ color: 'var(--mg-blue)' }}>¥{payroll.paPay}万</span>
+                  </div>
+                </div>
+                <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.1)', marginTop: '12px', paddingTop: '12px' }}>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>合計給料</span>
+                  <div style={{ fontSize: '1.3rem', fontWeight: '800', color: 'var(--mg-pink)' }}>
+                    ¥{payroll.totalPayroll}万
                   </div>
                 </div>
               </div>
 
-              {/* 仕掛品の棚卸 */}
-              <div style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.05)', paddingBottom: '12px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                  <span style={{ fontWeight: '700', fontSize: '0.9rem' }}>2. 仕掛品 (仕掛中)</span>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                    帳簿上の理論値: <span className="electric-number" style={{ color: 'var(--text-primary)' }}>{wipTheoretical} 個</span>
-                  </span>
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '12px', alignItems: 'center' }}>
-                  <div className="form-group" style={{ marginBottom: 0 }}>
-                    <input
-                      type="number"
-                      value={actualWip || ''}
-                      onChange={(e) => handleActualChange('wip', e.target.value)}
-                      placeholder="盤の上の仕掛品数"
-                      className="form-input"
-                      style={{ padding: '10px' }}
-                    />
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'center' }}>
-                    {wipMatches ? (
-                      <span className="badge badge-green" style={{ width: '100%', padding: '8px 0' }}>✅ 一致 (OK)</span>
-                    ) : (
-                      <span className="badge badge-pink" style={{ width: '100%', padding: '8px 0' }}>⚠️ ズレあり</span>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* 製品の棚卸 */}
-              <div style={{ paddingBottom: '4px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                  <span style={{ fontWeight: '700', fontSize: '0.9rem' }}>3. 製品 (完成品)</span>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                    帳簿上の理論値: <span className="electric-number" style={{ color: 'var(--text-primary)' }}>{prodTheoretical} 個</span>
-                  </span>
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '12px', alignItems: 'center' }}>
-                  <div className="form-group" style={{ marginBottom: 0 }}>
-                    <input
-                      type="number"
-                      value={actualProduct || ''}
-                      onChange={(e) => handleActualChange('prod', e.target.value)}
-                      placeholder="盤の上の製品数"
-                      className="form-input"
-                      style={{ padding: '10px' }}
-                    />
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'center' }}>
-                    {prodMatches ? (
-                      <span className="badge badge-green" style={{ width: '100%', padding: '8px 0' }}>✅ 一致 (OK)</span>
-                    ) : (
-                      <span className="badge badge-pink" style={{ width: '100%', padding: '8px 0' }}>⚠️ ズレあり</span>
-                    )}
-                  </div>
-                </div>
+              {/* チップ返却確認 */}
+              <div>
+                <span style={{ fontWeight: '700', fontSize: '0.9rem' }}>チップ返却確認</span>
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '8px' }}>
+                  期末に以下のチップを返却してください（最大1枚繰越可）：
+                </p>
+                <ul style={{ fontSize: '0.8rem', marginTop: '8px', marginLeft: '20px', color: 'var(--text-secondary)' }}>
+                  <li>商品開発チップ（青）</li>
+                  <li>広告チップ（赤）</li>
+                  <li>環境整備チップ（緑）</li>
+                  <li>教育チップ（橙）</li>
+                  <li>保険チップ（白/黄）</li>
+                </ul>
               </div>
 
             </div>
-            
+
             <button
               onClick={() => handleStepChange(2)}
               className="btn-premium btn-primary"
               style={{ width: '100%', marginTop: '20px', padding: '12px' }}
             >
-              次へ：事故・災害損失の記録 👉
+              次へ：決算書確認 👉
             </button>
           </div>
         </div>
       )}
 
-      {/* ステップ2: 事故災害メモ (火災・製造ミス・盗難) */}
+      {/* ステップ2: 決算書確認 */}
       {currentStep === 2 && (
         <div className="tab-panel">
           <div className="glass-card">
             <div className="glass-card-header">
               <h3 className="glass-card-title">
-                🔥 ステップ2: 事故災害メモの入力
+                📊 ステップ2: 決算書確認
               </h3>
             </div>
             <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '16px' }}>
-              ゲーム中に発生した「火災」「製造ミス（WIP廃棄）」「盗難」の個数を入力してください。評価額を自動で特別損失に計上します。
+              第{currentPeriod}期の決算書を確認してください。「決算書」タブで詳細を確認できます。
             </p>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              
-              {/* 火災 (材料) */}
-              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '12px', alignItems: 'center' }}>
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label">火災 (材料の焼失)</label>
-                  <input
-                    type="number"
-                    value={actuals.fireCount || ''}
-                    onChange={(e) => handleAccidentChange('fireCount', e.target.value)}
-                    placeholder="0"
-                    className="form-input"
-                    style={{ padding: '10px' }}
-                  />
+            <div className="glass-card" style={{ padding: '16px', background: 'linear-gradient(135deg, rgba(255, 46, 147, 0.1) 0%, rgba(28, 30, 41, 0.95) 100%)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '20px' }}>
+                <div>
+                  <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>売上高 (PQ)</span>
+                  <div className="electric-number" style={{ fontSize: '1.5rem', color: 'var(--mg-blue)' }}>
+                    ¥{results.pl.salesRevenue.toLocaleString()}万
+                  </div>
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                  <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>評価額損失</span>
-                  <span className="electric-number" style={{ color: '#ef4444', fontSize: '0.9rem', fontWeight: '700' }}>
-                    -¥{results.mat.fireValue.toFixed(1)}万
-                  </span>
+                <div>
+                  <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>粗利益 (mPQ)</span>
+                  <div className="electric-number" style={{ fontSize: '1.5rem', color: 'var(--mg-pink)' }}>
+                    ¥{results.pl.margin.toLocaleString()}万
+                  </div>
                 </div>
-              </div>
-
-              {/* 製造ミス (仕掛品) */}
-              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '12px', alignItems: 'center' }}>
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label">製造ミス (仕掛品廃棄)</label>
-                  <input
-                    type="number"
-                    value={actuals.missCount || ''}
-                    onChange={(e) => handleAccidentChange('missCount', e.target.value)}
-                    placeholder="0"
-                    className="form-input"
-                    style={{ padding: '10px' }}
-                  />
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                  <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>評価額損失</span>
-                  <span className="electric-number" style={{ color: '#ef4444', fontSize: '0.9rem', fontWeight: '700' }}>
-                    -¥{results.wip.missValue.toFixed(1)}万
-                  </span>
+                <div>
+                  <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>経常利益 (G)</span>
+                  <div className="electric-number" style={{ fontSize: '1.5rem', color: results.pl.operatingProfit >= 0 ? 'var(--mg-green)' : '#ef4444' }}>
+                    ¥{results.pl.operatingProfit.toLocaleString()}万
+                  </div>
                 </div>
               </div>
-
-              {/* 盗難 (製品) */}
-              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '12px', alignItems: 'center' }}>
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label">盗難 (製品の紛失)</label>
-                  <input
-                    type="number"
-                    value={actuals.theftCount || ''}
-                    onChange={(e) => handleAccidentChange('theftCount', e.target.value)}
-                    placeholder="0"
-                    className="form-input"
-                    style={{ padding: '10px' }}
-                  />
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                  <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>評価額損失</span>
-                  <span className="electric-number" style={{ color: '#ef4444', fontSize: '0.9rem', fontWeight: '700' }}>
-                    -¥{results.prod.theftValue.toFixed(1)}万
-                  </span>
-                </div>
-              </div>
-
             </div>
 
-            {/* 事故災害総損失 */}
-            <div className="glass-card" style={{ margin: '20px 0 0 0', padding: '12px', background: 'rgba(239, 68, 68, 0.05)', borderColor: 'rgba(239, 68, 68, 0.15)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#ef4444' }}>事故災害 総損失(特別損失):</span>
-              <span className="electric-number" style={{ fontSize: '1.2rem', color: '#ef4444' }}>
-                -¥{(results.mat.fireValue + results.wip.missValue + results.prod.theftValue).toLocaleString()}万
-              </span>
-            </div>
-            
+            <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '16px' }}>
+              ✅ 決算書（P/L・B/S・C/F）が正しく計算されています。
+            </p>
+
             <div className="grid-2" style={{ marginTop: '20px' }}>
               <button onClick={() => handleStepChange(1)} className="btn-premium btn-secondary" style={{ padding: '12px' }}>
                 ◀ 戻る
               </button>
               <button onClick={() => handleStepChange(3)} className="btn-premium btn-primary" style={{ padding: '12px' }}>
-                次へ：現金合わせ ▶
+                完了 ✓
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* ステップ3: 現金合わせ (最終チェック) */}
+      {/* ステップ3: 完了 */}
       {currentStep === 3 && (
         <div className="tab-panel">
           <div className="glass-card">
             <div className="glass-card-header">
               <h3 className="glass-card-title">
-                💰 ステップ3: 最終現金合わせ
+                ✅ ステップ3: 完了
               </h3>
             </div>
-            <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '16px' }}>
-              会社盤のトレイにある「実際の現金紙幣」を数えて入力してください。出納帳の帳簿残高と完全に一致していれば決算成功です！
-            </p>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontWeight: '700', fontSize: '0.9rem' }}>現在の帳簿残高（理論値）:</span>
-                <span className="electric-number" style={{ fontSize: '1.2rem', color: 'var(--color-accent)' }}>
-                  ¥{cashTheoretical.toLocaleString()}万
-                </span>
+            <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+              <div style={{ fontSize: '3rem', marginBottom: '16px' }}>🎉</div>
+              <div style={{ fontSize: '1.3rem', fontWeight: '800', color: 'var(--mg-green)', marginBottom: '12px' }}>
+                第{currentPeriod}期の期末処理が完了しました！
               </div>
-
-              <div className="form-group">
-                <label className="form-label">実際のトレイ上の現金 (万)</label>
-                <input
-                  type="number"
-                  value={actualCash || ''}
-                  onChange={(e) => handleActualChange('cash', e.target.value)}
-                  placeholder="0"
-                  className="form-input"
-                  style={{ fontSize: '1.3rem', fontWeight: '800', textAlign: 'center', padding: '12px' }}
-                />
-              </div>
-
-              {/* 照合結果 */}
-              {cashMatches ? (
-                <div className="glass-card animate-pulse" style={{ margin: '8px 0 0 0', padding: '16px', background: 'rgba(0, 230, 118, 0.08)', borderColor: 'rgba(0, 230, 118, 0.3)', textAlign: 'center' }}>
-                  <span style={{ fontSize: '1.4rem', marginRight: '6px' }}>🎉</span>
-                  <span style={{ fontSize: '0.95rem', fontWeight: '800', color: 'var(--mg-green)' }}>
-                    現金残高が完全に一致しました！
-                  </span>
-                  <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '8px' }}>
-                    帳簿と現金のズレはありません。第{currentPeriod}期の「決算書」タブを確認して決算書を作成しましょう！
-                  </p>
-                </div>
-              ) : (
-                <div className="glass-card" style={{ margin: '8px 0 0 0', padding: '16px', background: 'rgba(239, 68, 68, 0.08)', borderColor: 'rgba(239, 68, 68, 0.3)', textAlign: 'center' }}>
-                  <span style={{ fontSize: '1.4rem', marginRight: '6px' }}>⚠️</span>
-                  <span style={{ fontSize: '0.95rem', fontWeight: '800', color: '#ef4444' }}>
-                    現金残高にズレがあります！
-                  </span>
-                  <div className="electric-number" style={{ fontSize: '1.1rem', color: '#ef4444', margin: '8px 0' }}>
-                    ズレ金額: ¥{Math.abs(cashTheoretical - actualCash).toLocaleString()} 万
-                  </div>
-                  <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-                    {cashTheoretical > actualCash 
-                      ? "帳簿上の現金が実際より多いです。出金の入力忘れ、または盤上の仕訳ミスがないか確認してください。" 
-                      : "盤上の現金が帳簿より多いです。入金の入力忘れ、またはお釣りの渡し間違い等がないか確認してください。"}
-                  </p>
-                </div>
-              )}
+              <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
+                「決算書」タブから変動損益計算書・貸借対照表・資金計算書を確認してください。<br/>
+                次期の経営計画は「計画表」タブで立案できます。
+              </p>
             </div>
 
             <button
-              onClick={() => handleStepChange(2)}
+              onClick={() => handleStepChange(1)}
               className="btn-premium btn-secondary"
               style={{ width: '100%', marginTop: '20px', padding: '12px' }}
             >
-              ◀ 戻る
+              ◀ 最初に戻る
             </button>
           </div>
         </div>

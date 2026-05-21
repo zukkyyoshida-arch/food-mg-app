@@ -45,6 +45,16 @@ export const DEFAULT_PERIOD_DATA = {
   }
 };
 
+export function calculateStaffPayroll(carryover) {
+  const employeePay = (carryover.employees || 0) * 50;
+  const paPay = (carryover.pas || 0) * 20;
+  return {
+    totalPayroll: employeePay + paPay,
+    employeePay,
+    paPay
+  };
+}
+
 export function calculateBudget(budget, carryover) {
   // 予算計画用（ManagementPlanで使用）
   const fixedCostTotal = (budget.laborBudget || 0) + (budget.salesBudget || 0) + (budget.adminBudget || 0) + (budget.nonOperatingBudget || 0);
