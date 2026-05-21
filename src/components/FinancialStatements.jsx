@@ -281,7 +281,7 @@ function FinancialStatements({ results, carryover }) {
                 </tr>
                 <tr>
                   <td style={{ color: 'var(--text-muted)', paddingLeft: '20px' }}>┗ 減価償却費 (非資金)</td>
-                  <td style={{ textAlign: 'right', color: 'var(--text-muted)' }}>+¥{pl.manufacturingFixed - results.ledger.filter(e => e.category === 'ス').reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0)}万</td>
+                  <td style={{ textAlign: 'right', color: 'var(--text-muted)' }}>+¥{results.machines.depreciation}万</td>
                 </tr>
                 <tr>
                   <td style={{ color: 'var(--text-muted)', paddingLeft: '20px' }}>┗ 在庫増減 (材料・仕掛・製品)</td>

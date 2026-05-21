@@ -205,12 +205,13 @@ function App() {
 
         {activeTab === 'periodEnd' && (
           <div className="tab-panel">
-            <PeriodEndWizard 
+            <PeriodEndWizard
               carryover={currentData.carryover}
               ledger={currentData.ledger}
               actuals={currentData.actuals}
               onUpdateActuals={(newActuals) => updatePeriodData('actuals', newActuals)}
               results={results}
+              currentPeriod={currentPeriod}
             />
           </div>
         )}
