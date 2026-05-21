@@ -16,8 +16,10 @@ function ManagementPlan({ budget, carryover, onUpdateBudget, results }) {
       nonOperatingBudget: 5,
       rdBudget: 10
     };
+    // budgetに保存済みデータがあればAシナリオに反映
+    const hasSaved = Object.values(budget).some(v => v !== 0);
     return {
-      A: { ...defaultData, targetG: 150 },
+      A: hasSaved ? { ...defaultData, targetG: 150, ...budget } : { ...defaultData, targetG: 150 },
       B: { ...defaultData, targetG: 80 },
       C: { ...defaultData, targetG: 50 }
     };
@@ -37,10 +39,11 @@ function ManagementPlan({ budget, carryover, onUpdateBudget, results }) {
       [currentScenario]: updatedScenario
     }));
 
-    // 親コンポーネントの状態も同期 (代表としてA予算を保存)
+    // アクティブシナリオを親に同期（Aのみ永続化）
     if (currentScenario === 'A') {
       onUpdateBudget(updatedScenario);
     }
+    // TODO: B/Cも保存する場合はbudget構造をオブジェクトに拡張が必要
   };
 
   const handleSliderChange = (val) => {

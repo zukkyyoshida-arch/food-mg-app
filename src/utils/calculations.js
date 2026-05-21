@@ -102,9 +102,10 @@ export function calculateFinancials(carryover, ledger, actuals) {
       ledgerTotals[cat].amount += amt;
       ledgerTotals[cat].quantity += qty;
       
-      if (CATEGORIES[cat].type === "inflow") {
+      if (CATEGORIES[cat].type === "inflow" && cat !== "ネ") {
+        // ネ (売掛・売上) は掛売上のため現金は動かない。売掛金増加のみ。
         cashInflow += amt;
-      } else {
+      } else if (CATEGORIES[cat].type === "outflow") {
         cashOutflow += amt;
       }
     }

@@ -1,11 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
-function PeriodEndWizard({ carryover, ledger, actuals, onUpdateActuals, results }) {
+function PeriodEndWizard({ carryover, ledger, actuals, onUpdateActuals, results, currentPeriod }) {
   const [currentStep, setCurrentStep] = useState(1);
   const [actualMaterials, setActualMaterials] = useState(actuals.actualMaterials || 0);
   const [actualWip, setActualWip] = useState(actuals.actualWip || 0);
   const [actualProduct, setActualProduct] = useState(actuals.actualProduct || 0);
   const [actualCash, setActualCash] = useState(actuals.actualCash || 0);
+
+  // acualsプロップが外部から更新された場合（期引き継ぎなど）にローカル状態を同期
+  useEffect(() => {
+    setActualMaterials(actuals.actualMaterials || 0);
+    setActualWip(actuals.actualWip || 0);
+    setActualProduct(actuals.actualProduct || 0);
+    setActualCash(actuals.actualCash || 0);
+  }, [actuals]);
 
   const handleStepChange = (step) => {
     setCurrentStep(step);
@@ -339,7 +347,7 @@ function PeriodEndWizard({ carryover, ledger, actuals, onUpdateActuals, results 
                     現金残高が完全に一致しました！
                   </span>
                   <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '8px' }}>
-                    帳簿と現金のズレはありません。第{results.rank}決算の「決算書」タブを確認して決算書を作成しましょう！
+                    帳簿と現金のズレはありません。第{currentPeriod}期の「決算書」タブを確認して決算書を作成しましょう！
                   </p>
                 </div>
               ) : (
