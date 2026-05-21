@@ -110,25 +110,14 @@ function App() {
     const prevResults = calculateFinancials(prevData.carryover, prevData.ledger, prevData.actuals);
 
     const prevBS = prevResults.bs;
-    const prevMat = prevResults.mat;
-    const prevWip = prevResults.wip;
-    const prevProd = prevResults.prod;
-    const prevMach = prevResults.machines;
+    const prevStores = prevResults.stores;
 
     // B/S残高を引き継ぎ
     const nextCarryover = {
       cash: prevBS.cash,
-      materialsCount: prevMat.endingCount,
-      materialsValue: prevMat.endingValue,
-      wipCount: prevWip.endingCount,
-      wipValue: prevWip.endingValue,
-      productCount: prevProd.endingCount,
-      productValue: prevProd.endingValue,
-      largeMachines: prevMach.large, // 機械数も引き継ぎ
-      smallMachines: prevMach.small,
-      attachments: prevMach.attachments,
-      machinesCount: prevMach.large + prevMach.small,
-      machinesValue: prevBS.fixedAssets,
+      smallStores: prevStores.small,
+      largeStores: prevStores.large,
+      storesValue: prevBS.fixedAssets,
       loan: prevBS.loans,
       receivables: prevBS.receivables,
       payables: prevBS.payables,
@@ -144,10 +133,7 @@ function App() {
           carryover: nextCarryover,
           actuals: {
             ...prev[currentPeriod].actuals,
-            actualCash: prevBS.cash,
-            actualMaterials: prevMat.endingCount,
-            actualWip: prevWip.endingCount,
-            actualProduct: prevProd.endingCount
+            actualCash: prevBS.cash
           }
         }
       }));
@@ -163,7 +149,7 @@ function App() {
           <div className="badge badge-pink" style={{ fontSize: '0.8rem', padding: '4px 8px' }}>
             第{currentPeriod}期
           </div>
-          <span className="app-title">戦略MG 製造業</span>
+          <span className="app-title">戦略MG 飲食業</span>
         </div>
         
         <div style={{ display: 'flex', gap: '8px' }}>

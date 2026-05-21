@@ -1,19 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 
-function PeriodEndWizard({ carryover, ledger, actuals, onUpdateActuals, results, currentPeriod }) {
+function PeriodEndWizard({ carryover, ledger, actuals, results, currentPeriod }) {
   const [currentStep, setCurrentStep] = useState(1);
-  const [actualMaterials, setActualMaterials] = useState(actuals.actualMaterials || 0);
-  const [actualWip, setActualWip] = useState(actuals.actualWip || 0);
-  const [actualProduct, setActualProduct] = useState(actuals.actualProduct || 0);
-  const [actualCash, setActualCash] = useState(actuals.actualCash || 0);
-
-  // acualsプロップが外部から更新された場合（期引き継ぎなど）にローカル状態を同期
-  useEffect(() => {
-    setActualMaterials(actuals.actualMaterials || 0);
-    setActualWip(actuals.actualWip || 0);
-    setActualProduct(actuals.actualProduct || 0);
-    setActualCash(actuals.actualCash || 0);
-  }, [actuals]);
 
   const handleStepChange = (step) => {
     setCurrentStep(step);

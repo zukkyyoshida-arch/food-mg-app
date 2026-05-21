@@ -1,93 +1,64 @@
 /**
- * 戦略MG（製造業）計算エンジン
- * スプレッドシートの全ての仕訳・在庫棚卸・原価計算・決算書（P/L, B/S, C/F）ロジックを完全再現します。
+ * 戦略MG（飲食業）計算エンジン
  */
 
-// 勘定科目の定義
 export const CATEGORIES = {
-  // 入金系 (Inflow)
-  "ネ": { label: "売掛・売上", type: "inflow", color: "pink", symbol: "ネ" },
-  "ア": { label: "売掛金入金", type: "inflow", color: "pink", symbol: "ア" },
-  "イ": { label: "機械売却", type: "inflow", color: "pink", symbol: "イ" },
-  "エ": { label: "受取保険金", type: "inflow", color: "pink", symbol: "エ" },
-  "オ": { label: "借入金", type: "inflow", color: "pink", symbol: "オ" },
-  "カ": { label: "資本金増加", type: "inflow", color: "pink", symbol: "カ" },
-  "キ": { label: "現金売上", type: "inflow", color: "pink", symbol: "キ" },
-  
-  // 出金系 (Outflow)
-  "ケ": { label: "機械工具購入", type: "outflow", color: "purple", symbol: "ケ" },
-  "コ": { label: "材料投入費", type: "outflow", color: "green", symbol: "コ" },
-  "サ": { label: "完成費", type: "outflow", color: "green", symbol: "サ" },
-  "シ": { label: "労務費", type: "outflow", color: "blue", symbol: "シ" },
-  "ス": { label: "製造経費", type: "outflow", color: "blue", symbol: "ス" },
-  "セ": { label: "販売費", type: "outflow", color: "blue", symbol: "セ" },
-  "ソ": { label: "一般管理費", type: "outflow", color: "blue", symbol: "ソ" },
-  "タ": { label: "営業外費用", type: "outflow", color: "blue", symbol: "タ" },
-  "チ": { label: "研究開発費", type: "outflow", color: "blue", symbol: "チ" },
-  "ツ": { label: "材料仕入", type: "outflow", color: "green", symbol: "ツ" },
-  "ナ": { label: "借入金返済", type: "outflow", color: "yellow", symbol: "ナ" },
-  "ニ": { label: "納税", type: "outflow", color: "yellow", symbol: "ニ" },
-  "ヌ": { label: "買掛金支払", type: "outflow", color: "yellow", symbol: "ヌ" }
+  // 入金系
+  "ウ": { label: "売上", type: "inflow", color: "pink", symbol: "ウ" },
+  "エ": { label: "売上", type: "inflow", color: "pink", symbol: "エ" },
+  "ア": { label: "資本金", type: "inflow", color: "pink", symbol: "ア" },
+  "イ": { label: "借入金", type: "inflow", color: "pink", symbol: "イ" },
+
+  // 出金系
+  "カ": { label: "食材仕入", type: "outflow", color: "green", symbol: "カ" },
+  "コ": { label: "食材仕入", type: "outflow", color: "green", symbol: "コ" },
+  "キ": { label: "人件費", type: "outflow", color: "blue", symbol: "キ" },
+  "ク": { label: "販売費", type: "outflow", color: "blue", symbol: "ク" },
+  "ケ": { label: "管理費", type: "outflow", color: "blue", symbol: "ケ" },
+  "コ": { label: "営業外費用", type: "outflow", color: "blue", symbol: "コ" }
 };
 
-/**
- * 初期状態（第1期のデフォルト値など）
- */
 export const DEFAULT_PERIOD_DATA = {
   carryover: {
-    cash: 300,              // ⑬現金
-    materialsCount: 0,      // ⑧材料個数
-    materialsValue: 0,      // ⑧材料金額
-    wipCount: 0,            // ⑯仕掛品個数
-    wipValue: 0,            // ⑯仕掛品金額
-    productCount: 0,        // ⑧製品個数
-    productValue: 0,        // ⑧製品金額
-    machinesCount: 0,       // ⑭機械台数 (合計)
-    machinesValue: 0,       // ⑭機械金額 (合計)
-    loan: 0,                // ⑰借入金
-    receivables: 0,         // ⑱売掛金
-    payables: 0,            // ⑲買掛金
-    retainedEarnings: 0,    // ㉒繰越利益剰余金
-    capital: 300,           // 資本金 (初期値300)
-    
-    // 機械内訳
-    largeMachines: 0,       // 大型機械台数
-    smallMachines: 0,       // 小型機械台数
-    attachments: 0,         // アタッチメント数
-    workers: 3              // 社員数 (標準初期値: 3名)
+    cash: 300,
+    smallStores: 0,
+    largeStores: 0,
+    storesValue: 0,
+    employees: 0,
+    pas: 0,
+    loan: 0,
+    receivables: 0,
+    payables: 0,
+    retainedEarnings: 0,
+    capital: 300
   },
-  ledger: [],               // 現金出納帳
+  ledger: [],
   actuals: {
-    actualCash: 300,
-    actualMaterials: 0,
-    actualWip: 0,
-    actualProduct: 0,
-    fireCount: 0,           // 火災（材料）
-    missCount: 0,           // 製造ミス（仕掛品）
-    theftCount: 0           // 盗難（製品）
+    actualCash: 300
   },
   budget: {
-    targetG: 0,             // 目標G
-    // 固定費予算
+    targetG: 0,
     laborBudget: 0,
-    manufacturingBudget: 0,
-    depreciationBudget: 0,
     salesBudget: 0,
     adminBudget: 0,
-    nonOperatingBudget: 0,
-    rdBudget: 0
+    nonOperatingBudget: 0
   }
 };
 
-/**
- * 帳簿データを元にすべての数値を再計算するメイン関数
- */
+export function calculateBudget(budget, carryover) {
+  // 予算計画用（ManagementPlanで使用）
+  const fixedCostTotal = (budget.laborBudget || 0) + (budget.salesBudget || 0) + (budget.adminBudget || 0) + (budget.nonOperatingBudget || 0);
+  const requiredMQ = fixedCostTotal;
+  return {
+    fixedCostTotal,
+    requiredMQ
+  };
+}
+
 export function calculateFinancials(carryover, ledger, actuals) {
-  // 1. 現金の出入金集計
   let cashInflow = 0;
   let cashOutflow = 0;
-  
-  // 出納帳カテゴリ別の集計
+
   const ledgerTotals = {};
   Object.keys(CATEGORIES).forEach(k => {
     ledgerTotals[k] = { amount: 0, quantity: 0 };
@@ -97,13 +68,12 @@ export function calculateFinancials(carryover, ledger, actuals) {
     const amt = Number(entry.amount) || 0;
     const qty = Number(entry.quantity) || 0;
     const cat = entry.category;
-    
+
     if (CATEGORIES[cat]) {
       ledgerTotals[cat].amount += amt;
       ledgerTotals[cat].quantity += qty;
-      
-      if (CATEGORIES[cat].type === "inflow" && cat !== "ネ") {
-        // ネ (売掛・売上) は掛売上のため現金は動かない。売掛金増加のみ。
+
+      if (CATEGORIES[cat].type === "inflow") {
         cashInflow += amt;
       } else if (CATEGORIES[cat].type === "outflow") {
         cashOutflow += amt;
@@ -113,344 +83,137 @@ export function calculateFinancials(carryover, ledger, actuals) {
 
   const bookEndingCash = carryover.cash + cashInflow - cashOutflow;
 
-  // 2. 在庫・原価計算 (材料 -> 仕掛品 -> 製品)
-  
-  // A. 材料 (Materials)
-  const matBeginningCount = carryover.materialsCount || 0;
-  const matBeginningValue = carryover.materialsValue || 0;
-  const matPurchaseCount = ledgerTotals["ツ"].quantity;
-  const matPurchaseValue = ledgerTotals["ツ"].amount;
-  
-  const matTotalCount = matBeginningCount + matPurchaseCount;
-  const matTotalValue = matBeginningValue + matPurchaseValue;
-  
-  // 平均単価の算出
-  const matUnitCost = matTotalCount > 0 ? (matTotalValue / matTotalCount) : 0;
-  
-  // 投入 (コ)
-  const matInputCount = ledgerTotals["コ"].quantity;
-  const matInputValue = matInputCount * matUnitCost;
-  
-  // 事故災害：火災 (材料)
-  const fireCount = actuals.fireCount || 0;
-  const matFireValue = fireCount * matUnitCost;
-  
-  // 材料の次期繰越 (理論値)
-  const matEndingCount = matTotalCount - matInputCount - fireCount;
-  const matEndingValue = matEndingCount * matUnitCost;
+  // P/L計算 (変動損益計算書)
+  const salesRevenue = ledgerTotals["ウ"].amount + ledgerTotals["エ"].amount;
+  const variableCost = ledgerTotals["カ"].amount + ledgerTotals["コ"].amount;
+  const margin = salesRevenue - variableCost;
+  const marginRatio = salesRevenue > 0 ? (margin / salesRevenue) * 100 : 0;
 
-  // B. 仕掛品 (Work-in-Progress)
-  const wipBeginningCount = carryover.wipCount || 0;
-  const wipBeginningValue = carryover.wipValue || 0;
-  
-  // WIPへのインプット：材料投入金額 + 完成費 (サ) の支払金額
-  const wipInputCount = matInputCount; 
-  const wipInputValue = matInputValue + ledgerTotals["サ"].amount; // 材料費 + 完成加工費
-  
-  const wipTotalCount = wipBeginningCount + wipInputCount;
-  const wipTotalValue = wipBeginningValue + wipInputValue;
-  
-  const wipUnitCost = wipTotalCount > 0 ? (wipTotalValue / wipTotalCount) : 0;
-  
-  // 完成 (サ の生産個数)
-  const wipCompletedCount = ledgerTotals["サ"].quantity;
-  const wipCompletedValue = wipCompletedCount * wipUnitCost;
-  
-  // 事故災害：製造ミス (仕掛品)
-  const missCount = actuals.missCount || 0;
-  const wipMissValue = missCount * wipUnitCost;
-  
-  // 仕掛品の次期繰越 (理論値)
-  const wipEndingCount = wipTotalCount - wipCompletedCount - missCount;
-  const wipEndingValue = wipEndingCount * wipUnitCost;
+  // 固定費 F
+  const laborCost = ledgerTotals["キ"].amount;
+  const salesCost = ledgerTotals["ク"].amount;
+  const adminCost = ledgerTotals["ケ"].amount;
+  const nonOperatingCost = ledgerTotals["コ"].amount;
 
-  // C. 製品 (Finished Goods)
-  const prodBeginningCount = carryover.productCount || 0;
-  const prodBeginningValue = carryover.productValue || 0;
-  const prodCompletedCount = wipCompletedCount;
-  const prodCompletedValue = wipCompletedValue;
-  
-  const prodTotalCount = prodBeginningCount + prodCompletedCount;
-  const prodTotalValue = prodBeginningValue + prodCompletedValue;
-  
-  const prodUnitCost = prodTotalCount > 0 ? (prodTotalValue / prodTotalCount) : 0;
-  
-  // 売上個数 (キ + ネ の合計個数)
-  const salesCount = ledgerTotals["キ"].quantity + ledgerTotals["ネ"].quantity;
-  const cogsValue = salesCount * prodUnitCost; // 売上原価
-  
-  // 事故災害：盗難 (製品)
-  const theftCount = actuals.theftCount || 0;
-  const prodTheftValue = theftCount * prodUnitCost;
-  
-  // 製品の次期繰越 (理論値)
-  const prodEndingCount = prodTotalCount - salesCount - theftCount;
-  const prodEndingValue = prodEndingCount * prodUnitCost;
+  // 店舗減価償却費
+  const storeDepreciation = (carryover.smallStores || 0) * 10 + (carryover.largeStores || 0) * 20;
 
-  // 3. 機械資産の計算
-  // 減価償却費の決定 (大型機械・小型機械・アタッチメントの台数に基づく固定費)
-  // 機械内訳は、期首＋購入（ケ の数量）−売却（イ の数量）
-  // 簡略化のため、機械の台数は前期繰越に「ケ」で買った分を加算、売却「イ」を減算
-  const largeMachines = carryover.largeMachines || 0;
-  const smallMachines = carryover.smallMachines || 0;
-  const attachments = carryover.attachments || 0;
-  
-  // 減価償却費 (大型: 20/台, 小型: 10/台, アタッチメント: 2/台)
-  const depreciation = (largeMachines * 20) + (smallMachines * 10) + (attachments * 2);
-  
-  // 購入された機械工具 (ケ)
-  const purchasedMachineValue = ledgerTotals["ケ"].amount;
-  // 機械資産の期末残高 (理論値)
-  // 期首金額 + 新規購入 - 減価償却 (売却があった場合は売却価値を引くが、ここでは簡易化し期末簿価に反映)
-  const bookEndingMachines = Math.max(0, carryover.machinesValue + purchasedMachineValue - depreciation - ledgerTotals["イ"].amount);
+  const fixedCost = laborCost + salesCost + adminCost + nonOperatingCost + storeDepreciation;
+  const operatingProfit = margin - fixedCost;
+  const fmRatio = margin > 0 ? (fixedCost / margin) * 100 : 0;
 
-  // 4. P/L (変動損益計算書) の計算
-  const salesRevenue = ledgerTotals["キ"].amount + ledgerTotals["ネ"].amount; // 売上高 PQ
-  const variableCost = cogsValue; // 売上原価 vPQ (変動費)
-  const margin = salesRevenue - variableCost; // 付加価値 mPQ
-  const marginRatio = salesRevenue > 0 ? (margin / salesRevenue) * 100 : 0; // m率
-  
-  // 固定費 F (シ, ス, セ, ソ, タ, チ + 減価償却)
-  // 注: サ(完成費)、コ(投入費)、ツ(材料)、ケ(機械)、ナ(借入返済)、ニ(納税)、ヌ(買掛支払)は固定費ではない
-  const laborCost = ledgerTotals["シ"].amount; // 労務費
-  const manufacturingFixed = ledgerTotals["ス"].amount + depreciation; // 製造固定費 (製造経費 + 減価償却)
-  const salesCost = ledgerTotals["セ"].amount; // 販売費
-  const adminCost = ledgerTotals["ソ"].amount; // 一般管理費
-  const rdCost = ledgerTotals["チ"].amount; // 研究開発費
-  const nonOperatingCost = ledgerTotals["タ"].amount; // 営業外費用
-  
-  const fixedCost = laborCost + manufacturingFixed + salesCost + adminCost + rdCost + nonOperatingCost; // 固定費合計 F
-  
-  const operatingProfit = margin - fixedCost; // 経常利益 G
-  const fmRatio = margin > 0 ? (fixedCost / margin) * 100 : 0; // f/m比率
+  const profitBeforeTax = operatingProfit;
 
-  // 特別損益 (災害損失 + 受取保険金など)
-  // 事故災害損失 = 火災金額 + 製造ミス金額 + 盗難金額
-  const accidentLoss = matFireValue + wipMissValue + prodTheftValue;
-  const extraordinaryLoss = accidentLoss;
-  const extraordinaryGain = ledgerTotals["エ"].amount + ledgerTotals["イ"].amount; // 保険金 + 機械売却収入
-  const extraordinaryProfit = extraordinaryGain - extraordinaryLoss;
-
-  const profitBeforeTax = operatingProfit + extraordinaryProfit; // 税引前当期純利益
-
-  // 法人税等の計算
-  // ルール: 前期繰越利益剰余金がマイナスで合計(税引前＋前期繰越)がプラスなら合計の50%。
-  // 前期繰越利益剰余金がプラスなら税引前当期純利益の50%。
   const priorRetained = carryover.retainedEarnings || 0;
-  const totalTaxBase = profitBeforeTax + priorRetained;
   let corporateTax = 0;
-  
   if (profitBeforeTax > 0) {
     if (priorRetained < 0) {
+      const totalTaxBase = profitBeforeTax + priorRetained;
       corporateTax = totalTaxBase > 0 ? Math.round(totalTaxBase * 0.5) : 0;
     } else {
       corporateTax = Math.round(profitBeforeTax * 0.5);
     }
   }
 
-  const netProfit = profitBeforeTax - corporateTax; // 当期純利益
-  const endingRetained = priorRetained + netProfit; // 次期繰越利益剰余金
+  const netProfit = profitBeforeTax - corporateTax;
+  const endingRetained = priorRetained + netProfit;
 
-  // 5. B/S (貸借対照表) の計算
+  // B/S計算
   const endingCash = bookEndingCash;
-  // 売掛金: 期首 + 新規売掛発生(ネ) - 回収(ア)
-  const endingReceivables = Math.max(0, carryover.receivables + ledgerTotals["ネ"].amount - ledgerTotals["ア"].amount);
-  
-  // 買掛金: 期首 + 新規材料仕入(ツ) - 支払(ヌ)
-  const endingPayables = Math.max(0, carryover.payables + ledgerTotals["ツ"].amount - ledgerTotals["ヌ"].amount);
-  
-  // 借入金: 期首 + 新規借入(オ) - 返済(ナ)
-  const endingLoans = Math.max(0, carryover.loan + ledgerTotals["オ"].amount - ledgerTotals["ナ"].amount);
-  
-  // 資産合計
-  const totalCurrentAssets = endingCash + endingReceivables + matEndingValue + wipEndingValue + prodEndingValue;
-  const totalFixedAssets = bookEndingMachines;
+  const endingReceivables = Math.max(0, carryover.receivables + ledgerTotals["ウ"].amount - (ledgerTotals["ウ"].amount > 0 ? 0 : 0));
+  const endingPayables = Math.max(0, carryover.payables + variableCost - (variableCost > 0 ? 0 : 0));
+  const endingLoans = Math.max(0, carryover.loan + ledgerTotals["イ"].amount);
+
+  const storesValue = (carryover.smallStores || 0) * 100 + (carryover.largeStores || 0) * 200 - storeDepreciation;
+
+  const totalCurrentAssets = endingCash + endingReceivables;
+  const totalFixedAssets = Math.max(0, storesValue);
   const totalAssets = totalCurrentAssets + totalFixedAssets;
 
-  // 負債合計
-  const unpaidTax = corporateTax; // 未払法人税
+  const unpaidTax = corporateTax;
   const totalLiabilities = endingPayables + endingLoans + unpaidTax;
 
-  // 純資産合計
-  const endingCapital = carryover.capital + ledgerTotals["カ"].amount; // 資本金
+  const endingCapital = carryover.capital + ledgerTotals["ア"].amount;
   const totalNetAssets = endingCapital + endingRetained;
-  
-  const totalLiabilitiesAndNetAssets = totalLiabilities + totalNetAssets;
 
-  // B/S不一致（バランスエラー）のチェック
+  const totalLiabilitiesAndNetAssets = totalLiabilities + totalNetAssets;
   const bsDifference = Math.abs(totalAssets - totalLiabilitiesAndNetAssets);
 
-  // 6. C/F (キャッシュフロー計算書)
-  // 営業キャッシュフロー
-  const operatingCF = 
-    profitBeforeTax 
-    + depreciation 
-    - (endingReceivables - carryover.receivables) 
-    - (matEndingValue - matBeginningValue) 
-    - (wipEndingValue - wipBeginningValue) 
-    - (prodEndingValue - prodBeginningValue) 
-    + (endingPayables - carryover.payables)
-    - ledgerTotals["ニ"].amount; // 納税出金
-  
-  // 投資キャッシュフロー
-  const investingCF = extraordinaryGain - purchasedMachineValue; // 売却/保険収入 - 新規購入
-  
-  // 財務キャッシュフロー
-  const financingCF = ledgerTotals["カ"].amount + ledgerTotals["オ"].amount - ledgerTotals["ナ"].amount; // 資本金増 + 新規借入 - 返済
-  
-  const freeCF = operatingCF + investingCF;
-  const totalCF = freeCF + financingCF;
-
-  // 評価ランク (経営戦略分析用)
-  let evaluationRank = "C";
-  if (operatingProfit >= 500) evaluationRank = "S";
-  else if (operatingProfit >= 200) evaluationRank = "A";
-  else if (operatingProfit >= 50) evaluationRank = "B";
+  // C/F計算
+  const operatingCF = profitBeforeTax + storeDepreciation - (endingReceivables - carryover.receivables) + (endingPayables - carryover.payables);
+  const investingCF = -((carryover.smallStores || 0) * 100 + (carryover.largeStores || 0) * 200);
+  const financingCF = ledgerTotals["ア"].amount + ledgerTotals["イ"].amount;
 
   return {
-    bookEndingCash,
-    cashInflow,
-    cashOutflow,
-    
-    // 原価・在庫
-    mat: {
-      beginningCount: matBeginningCount,
-      beginningValue: matBeginningValue,
-      purchaseCount: matPurchaseCount,
-      purchaseValue: matPurchaseValue,
-      totalCount: matTotalCount,
-      totalValue: matTotalValue,
-      unitCost: matUnitCost,
-      inputCount: matInputCount,
-      inputValue: matInputValue,
-      fireCount: fireCount,
-      fireValue: matFireValue,
-      endingCount: matEndingCount,
-      endingValue: matEndingValue
-    },
-    wip: {
-      beginningCount: wipBeginningCount,
-      beginningValue: wipBeginningValue,
-      inputCount: wipInputCount,
-      inputValue: wipInputValue,
-      totalCount: wipTotalCount,
-      totalValue: wipTotalValue,
-      unitCost: wipUnitCost,
-      completedCount: wipCompletedCount,
-      completedValue: wipCompletedValue,
-      missCount: missCount,
-      missValue: wipMissValue,
-      endingCount: wipEndingCount,
-      endingValue: wipEndingValue
-    },
-    prod: {
-      beginningCount: prodBeginningCount,
-      beginningValue: prodBeginningValue,
-      completedCount: prodCompletedCount,
-      completedValue: prodCompletedValue,
-      totalCount: prodTotalCount,
-      totalValue: prodTotalValue,
-      unitCost: prodUnitCost,
-      salesCount: salesCount,
-      cogsValue: cogsValue,
-      theftCount: theftCount,
-      theftValue: prodTheftValue,
-      endingCount: prodEndingCount,
-      endingValue: prodEndingValue
-    },
-    
-    // 機械情報
-    machines: {
-      large: largeMachines,
-      small: smallMachines,
-      attachments: attachments,
-      purchased: purchasedMachineValue,
-      depreciation: depreciation,
-      endingValue: bookEndingMachines
+    ledger,
+    ledgerTotals,
+
+    bs: {
+      cash: endingCash,
+      receivables: endingReceivables,
+      currentAssets: totalCurrentAssets,
+      fixedAssets: totalFixedAssets,
+      totalAssets,
+      payables: endingPayables,
+      loans: endingLoans,
+      unpaidTax,
+      totalLiabilities,
+      capital: endingCapital,
+      retainedEarnings: endingRetained,
+      totalNetAssets,
+      totalLiabilitiesAndNetAssets,
+      bsDifference,
+      // 互換性: 製造版ではmat/wip/prodの値。飲食版では0
+      materialsValue: 0,
+      wipValue: 0,
+      productValue: 0
     },
 
-    // P/L項目
     pl: {
       salesRevenue,
       variableCost,
       margin,
       marginRatio,
-      fixedCost,
       laborCost,
-      manufacturingFixed,
       salesCost,
       adminCost,
-      rdCost,
       nonOperatingCost,
+      storeDepreciation,
+      fixedCost,
+      fixedCostTotal: fixedCost,
       operatingProfit,
       fmRatio,
-      extraordinaryGain,
-      extraordinaryLoss,
-      extraordinaryProfit,
-      profitBeforeTax,
       corporateTax,
       netProfit,
-      endingRetained
+      profitBeforeTax,
+      requiredMQ: fixedCost // 経営計画用
     },
 
-    // B/S項目
-    bs: {
-      cash: endingCash,
-      receivables: endingReceivables,
-      materialsValue: matEndingValue,
-      wipValue: wipEndingValue,
-      productValue: prodEndingValue,
-      totalCurrentAssets,
-      fixedAssets: bookEndingMachines,
-      totalAssets,
-      
-      payables: endingPayables,
-      loans: endingLoans,
-      unpaidTax,
-      totalLiabilities,
-      
-      capital: endingCapital,
-      retainedEarnings: endingRetained,
-      totalNetAssets,
-      totalLiabilitiesAndNetAssets,
-      difference: bsDifference
-    },
-
-    // C/F項目
     cf: {
       operatingCF,
       investingCF,
       financingCF,
-      freeCF,
-      totalCF
+      netCF: operatingCF + investingCF + financingCF,
+      endingCash
     },
 
-    workers: carryover.workers !== undefined ? Number(carryover.workers) : 3,
-    rank: evaluationRank
-  };
-}
+    stores: {
+      small: carryover.smallStores || 0,
+      large: carryover.largeStores || 0,
+      depreciation: storeDepreciation
+    },
 
-/**
- * 予定計画 (Budget) の計算ロジック
- */
-export function calculateBudget(budget, carryover) {
-  const G = Number(budget.targetG) || 0;
-  
-  // 固定費合計
-  const F = 
-    (Number(budget.laborBudget) || 0) +
-    (Number(budget.manufacturingBudget) || 0) +
-    (Number(budget.depreciationBudget) || 0) +
-    (Number(budget.salesBudget) || 0) +
-    (Number(budget.adminBudget) || 0) +
-    (Number(budget.nonOperatingBudget) || 0) +
-    (Number(budget.rdBudget) || 0);
+    staff: {
+      employees: carryover.employees || 0,
+      pas: carryover.pas || 0
+    },
 
-  // 必要MQ = G + F
-  const requiredMQ = G + F;
-  
-  return {
-    fixedCostTotal: F,
-    requiredMQ
+    // 互換性: 製造版コンポーネントが参照する属性
+    mat: { endingCount: 0, fireValue: 0 },
+    wip: { endingCount: 0, missValue: 0 },
+    prod: { endingCount: 0, theftValue: 0 },
+    machines: { depreciation: 0 },
+    bookEndingCash: bookEndingCash,
+    rank: operatingProfit >= 0 ? 'A' : 'B'
   };
 }
